@@ -133,7 +133,13 @@ function updateMessage(res, input, response) {
       console.log( 'failure!' );
       console.log( e );
     } );
-  } else if ( response.output && response.output.text ) {
+  }
+  else if ( checkYelp( response ) ) {
+    console.log('yelp Time');
+  }
+
+
+  else if ( response.output && response.output.text ) {
     return res.json( response );
   }
 }
