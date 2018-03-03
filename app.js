@@ -21,6 +21,7 @@ require( 'dotenv' ).config( {silent: true} );
 var express = require( 'express' );  // app server
 var bodyParser = require( 'body-parser' );  // parser for post requests
 var watson = require( 'watson-developer-cloud' );  // watson sdk
+const yelp = require('yelp-fusion');
 
 // The following requires are needed for logging purposes
 var uuid = require( 'uuid' );
@@ -53,6 +54,15 @@ var conversation = watson.conversation( {
   version_date: '2016-07-11',
   version: 'v1'
 } );
+
+// const stt = new watson.SpeechToTextV1({
+//   // if left undefined, username and password to fall back to the SPEECH_TO_TEXT_USERNAME and
+//   // SPEECH_TO_TEXT_PASSWORD environment properties, and then to VCAP_SERVICES (on Bluemix)
+//   // username: '',
+//   // password: ''
+// });
+
+const client = yelp.client(process.env.YELP_KEY);
 
 // Endpoint to be call from the client side
 app.post( '/api/message', function(req, res) {
