@@ -33,6 +33,8 @@ var ConversationPanel = (function() {
       console.log("Browser geolocation isn't supported.");
       geoSuccess(position)
     }
+
+
     setupInputBox();
   }
 
@@ -221,4 +223,30 @@ var ConversationPanel = (function() {
       Common.fireEvent(inputBox, 'input');
     }
   }
+
+  // function handleDataAvailable(event) {
+  //   if (event.data.size > 0) {
+  //     var audioURL = window.URL.createObjectURL(event.data);
+  //     Api.sendAudioRequest(audioURL);
+  //
+  //   } else {
+  //     // ...
+  //   }
+  // }
+  // var handleSuccess = function(stream) {
+  //   mediaRecorder = new MediaRecorder(stream, options);
+  //   mediaRecorder.ondataavailable = handleDataAvailable;
+  //   mediaRecorder.start();
+  // }
+  // function speechToText(event) {
+  //
+  //   if(event.target.value == "mic") {
+  //     navigator.mediaDevices.getUserMedia({ audio: true, video: false }, handleSuccess, function(e) {
+  //     alert('Error capturing audio.');
+  //   });
+  //   }
+  //   else {
+  //     mediaRecorder.stop();
+  //   }
+  // }
 }());
