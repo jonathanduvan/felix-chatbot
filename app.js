@@ -525,6 +525,10 @@ function checkOriginLocation(data) {
 
 }
 
+function checkRome2Rio(data) {
+  return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'Rome2Rio') && (data.context.destination) && (data.context.originLocation));
+}
+
 ////
 
 function getYelpInfo(response) {
@@ -588,10 +592,6 @@ function getLocationURL(lat, long) {
   if ( lat !== null && long !== null ) {
     return '/api/' + process.env.WEATHER_KEY + '/geolookup/forecast10day/q/' + long + ',' + lat + '.json';
   }
-}
-
-function checkRome2Rio(data) {
-  return data.intents && data.intents.length > 0 && data.intents[0].intent === 'Rome2Rio';
 }
 
 function getRome2Rio(place1, place2) {
