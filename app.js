@@ -185,6 +185,7 @@ app.post( '/api/message', function(req, res) {
   console.log(params);
   // console.log(payload);
   nlu.analyze(params, function(error, response) {
+<<<<<<< HEAD
       // var destination;
      //  if(reponse.destination = undefined){
      //    destination = response.destination;
@@ -217,6 +218,10 @@ app.post( '/api/message', function(req, res) {
      //
      //  console.log('\n');
 
+=======
+
+
+>>>>>>> cd981363fed410646886dd573e5f18081a470478
       console.log(response);
       if(response !== null){
 
@@ -271,6 +276,10 @@ app.post( '/api/message', function(req, res) {
        //
        //  console.log('\n');
       }
+<<<<<<< HEAD
+=======
+
+>>>>>>> cd981363fed410646886dd573e5f18081a470478
     // Send the input to the conversation service
     conversation.message( payload, function(err, data) {
       if ( err ) {
@@ -468,11 +477,19 @@ function updateMessage(res, input, response) {
     });
   }
 
+<<<<<<< HEAD
   else if ( checkRome2Rio( response ) ) {
       var logistics = getRome2Rio( response.context.originLocation, response.context.destination );
       console.log("reaching Rome2Rio");
       console.log(logistics);
   }
+=======
+  //  else if ( checkRome2Rio( response ) ) {
+	// console.log("reaching Rome2Rio");
+	// response.output.text = getRome2Rio( response.context.originLocation, response.context.destination );
+  //     return.json(response);
+  // }
+>>>>>>> cd981363fed410646886dd573e5f18081a470478
 
   else if ( response.output && response.output.text ) {
     // response.context.yelpTrue = true;
@@ -664,6 +681,7 @@ function yelpQuery(keyword, response) {
       reject(e);
     });
   });
+<<<<<<< HEAD
 
 }
 
@@ -671,7 +689,14 @@ function checkRome2Rio(data) {
 	console.log("we hit checkRome2Rio");
   return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'Rome2Rio') && (data.context.destination) && (data.context.originLocation));
 
+=======
+>>>>>>> cd981363fed410646886dd573e5f18081a470478
 }
+// function checkRome2Rio(data) {
+// 	console.log("we hit checkRome2Rio");
+//   return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'Rome2Rio') && (data.context.destination) && (data.context.originLocation));
+//
+// }
 
 ////
 
@@ -746,6 +771,7 @@ function getRome2Rio(place1, place2) {
     .header("Accept", "application/json")
     .end(function (result) {
      console.log(result.status, result.headers, result.body);
+	    return result.status + result.headers + result.body;
     });
   }
 }
