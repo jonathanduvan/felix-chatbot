@@ -187,7 +187,51 @@ app.post( '/api/message', function(req, res) {
   nlu.analyze(params, function(error, response) {
     if (error) {
 
+
       // return res.status(error.code || 500).json(response);
+
+      let keywords = response.keywords;
+      payload.context.keywords = keywords;
+
+      let categories = response.categories;
+      payload.context.categories = categories;
+
+      let entities = response.entities;
+      payload.context.entities = entities;
+
+
+      // var destination;
+     //  if(reponse.destination = undefined){
+     //    destination = response.destination;
+     //  }
+     //  else{
+     //    destination = entities.map(function(entry) {
+     //      if(entry.type == "Location") {
+     //        if(entry.disambiguation && entry.disambiguation.subtype && entry.disambiguation.subtype.indexOf("City") > -1) {
+     //          return(entry.text);
+     //        }
+     //      }
+     //    });
+     //  }
+     //
+     //
+     //
+     //  destination = destination.filter(function(entry) {
+    	// 	if(entry != null) {
+    	// 	 return(entry);
+    	// 	}
+	   //  });
+     //  // console.log("User destination:");
+     //  // console.log(destination[0]);
+     //
+     //  if(destination.length > 0) {
+  	 //   payload.context.destination = destination[0];
+     // } else{
+     //   payload.context.destination = null;
+     // }
+     //
+     //  console.log('\n');
+
     }
     else {
 
@@ -416,7 +460,13 @@ function updateMessage(res, input, response) {
       return res.json(response);
     });
   }
-
+  
+  else if ( checkRome2Rio( response ) ) {
+      var logistics = getRome2Rio( response.context.originLocation, response.context.destination );
+      console.log("reaching Rome2Rio")  
+      console.log(logistics)
+  }
+  
   else if ( response.output && response.output.text ) {
     // response.context.yelpTrue = true;
     // response.context.searchTerm = 'scuba diving';
@@ -560,6 +610,10 @@ function checkOriginLocation(data) {
 
 }
 
+function checkRome2Rio(data) {
+  return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'Rome2Rio') && (data.context.destination) && (data.context.originLocation));
+}
+
 ////
 
 function getYelpInfo(response) {
@@ -622,6 +676,18 @@ function replaceParams(original, args) {
 function getLocationURL(lat, long) {
   if ( lat !== null && long !== null ) {
     return '/api/' + process.env.WEATHER_KEY + '/geolookup/forecast10day/q/' + long + ',' + lat + '.json';
+  }
+}
+
+function getRome2Rio(place1, place2) {
+  // These code snippets use an open-source library. http://unirest.io/nodejs
+  if ( place1 && place2 ) {
+    unirest.get("https://rome2rio12.p.mashape.com/Search?dName="+ place1 + "&oName=" + place2)
+    .header("X-Mashape-Key", "4cDxPeYcsGmsh1D3R4bFk2rKcng7p1y1xMgjsnTMywjbXOvDXC")
+    .header("Accept", "application/json")
+    .end(function (result) {
+     console.log(result.status, result.headers, result.body);
+    });
   }
 }
 
