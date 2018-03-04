@@ -148,7 +148,6 @@ function updateMessage(res, input, response) {
     console.log('yelp Time');
   }
 
-
   else if ( response.output && response.output.text ) {
     return res.json( response );
   }
