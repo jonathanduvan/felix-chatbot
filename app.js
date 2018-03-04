@@ -472,13 +472,13 @@ function updateMessage(res, input, response) {
       return res.json(response);
     });
   }
-  
-  else if ( checkRome2Rio( response ) ) {
-	console.log("reaching Rome2Rio");
-	response.output.text = getRome2Rio( response.context.originLocation, response.context.destination );
-      return.json(response);
-  }
-  
+
+  // else if ( checkRome2Rio( response ) ) {
+	// console.log("reaching Rome2Rio");
+	// response.output.text = getRome2Rio( response.context.originLocation, response.context.destination );
+  //     return.json(response);
+  // }
+
   else if ( response.output && response.output.text ) {
     // response.context.yelpTrue = true;
     // response.context.searchTerm = 'scuba diving';
@@ -671,7 +671,7 @@ function yelpQuery(keyword, response) {
     console.log('ERROR');
     return responseCards;
   });
-
+}
 function checkRome2Rio(data) {
 	console.log("we hit checkRome2Rio");
   return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'Rome2Rio') && (data.context.destination) && (data.context.originLocation));
