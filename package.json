@@ -23,7 +23,7 @@
     "play-sound": "^1.1.2",
     "uuid": "2.0.2",
     "vcap_services": "^0.2.0",
-    "watson-developer-cloud": "^1.12.2",
+    "watson-developer-cloud": "^2.28.0",
     "watson-speech": "^0.34.1",
     "yelp-fusion": "^2.0.3"
   },

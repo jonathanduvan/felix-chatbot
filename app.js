@@ -27,8 +27,12 @@ var watson = require( 'watson-developer-cloud' );  // watson sdk
 //var TextToSpeechV1 = require('watson-developer-cloud/text-to-speech/v1');
 
 const yelp = require('yelp-fusion');
+
+const NaturalLanguageUnderstandingV1 = require('watson-developer-cloud/natural-language-understanding/v1.js');
+
 var player = require('play-sound')('afplay');
 const mic = require('mic');
+
 
 // The following requires are needed for logging purposes
 var uuid = require( 'uuid' );
@@ -62,6 +66,19 @@ var conversation = watson.conversation( {
   version: 'v1'
 } );
 
+
+const nlu = new NaturalLanguageUnderstandingV1({
+  'username': process.env.NATURAL_LANGUAGE_UNDERSTANDING_USERNAME || '<username>',
+  'password': process.env.NATURAL_LANGUAGE_UNDERSTANDING_PASSWORD || '<password>',
+  version_date: NaturalLanguageUnderstandingV1.VERSION_DATE_2017_02_27
+});
+
+// const stt = new watson.SpeechToTextV1({
+//   // if left undefined, username and password to fall back to the SPEECH_TO_TEXT_USERNAME and
+//   // SPEECH_TO_TEXT_PASSWORD environment properties, and then to VCAP_SERVICES (on Bluemix)
+//   // username: '',
+//   // password: ''
+
 const speechToText = watson.speech_to_text({
   url: "https://stream.watsonplatform.net/speech-to-text/api",
   username: process.env.SPEECH_TO_TEXT_USERNAME || '<username>',
@@ -89,6 +106,7 @@ const textToSpeech = watson.text_to_speech({
 //         token: token,
 //     });
 //   }
+
 // });
 ///////////////////////
 
@@ -97,6 +115,12 @@ var config = {
   text: 'Hello from IBM Watson',
   voice: 'en-US_MichaelVoice', // Optional voice
   accept: 'audio/mp3'
+};
+
+var features= {
+    entities: {},
+    categories: {},
+    keywords: {}
 };
 
 const client = yelp.client(process.env.YELP_KEY);
@@ -136,22 +160,74 @@ app.post( '/api/message', function(req, res) {
     context: {},
     input: {}
   };
+
+  var params = null;
   if ( req.body ) {
     if ( req.body.input ) {
       payload.input = req.body.input;
+      params = {text: req.body.input.text,features:features};
     }
     if ( req.body.context ) {
       // The client must maintain context/state
       payload.context = req.body.context;
+
     }
   }
-  // Send the input to the conversation service
-  conversation.message( payload, function(err, data) {
-    if ( err ) {
-      return res.status( err.code || 500 ).json( err );
+
+  if(params == null) {
+   params = {text: "No request body context",features:features}
+  }
+
+  nlu.analyze(params, function(error, response) {
+    if (error) {
+      return res.status(error.code || 500).json(error);
     }
-    updateMessage( res, payload, data );
-  } );
+    if(response != null){
+      var keywords = response.keywords;
+      console.log('KEYWORDS:');
+      console.log(keywords);
+      var categories = response.categories;
+      console.log('CATEGORIES:');
+      console.log(categories);
+      var entities = response.entities;
+      console.log('ENTITIES:');
+      console.log(entities);
+
+
+      var destination = entities.map(function(entry) {
+        if(entry.type == "Location") {
+          if(entry.disambiguation && entry.disambiguation.subtype && entry.disambiguation.subtype.indexOf("City") > -1) {
+            return(entry.text);
+          }
+        }
+      });
+
+      destination = destination.filter(function(entry) {
+    		if(entry != null) {
+    		 return(entry);
+    		}
+	    });
+      console.log("User destination:");
+      console.log(destination[0]);
+
+      if(destination.length > 0) {
+  	   payload.context.destination = destination[0];
+     } else{
+       payload.context.destination = null;
+     }
+
+      console.log('\n');
+    }
+
+    // Send the input to the conversation service
+    conversation.message( payload, function(err, data) {
+      if ( err ) {
+        return res.status( err.code || 500 ).json( err );
+      }
+      updateMessage( res, payload, data );
+    } );
+  });
+
 } );
 
 /**
@@ -198,8 +274,10 @@ function updateMessage(res, input, response) {
       console.log( e );
     } );
   }
+
   else if ( checkYelp( response ) ) {
     // res.json(getYelpInfo(response));
+
 
     let keyTerm = response.context.searchTerm;
     let location = response.context.destination;
@@ -266,6 +344,9 @@ function updateMessage(res, input, response) {
       //     </div>
       //   </div>`);
       return res.json( response );
+  }
+  else{
+
   }
 }
 
