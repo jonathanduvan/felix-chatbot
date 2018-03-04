@@ -185,55 +185,7 @@ app.post( '/api/message', function(req, res) {
   console.log(params);
   // console.log(payload);
   nlu.analyze(params, function(error, response) {
-    if (error) {
 
-
-      // return res.status(error.code || 500).json(response);
-
-      let keywords = response.keywords;
-      payload.context.keywords = keywords;
-
-      let categories = response.categories;
-      payload.context.categories = categories;
-
-      let entities = response.entities;
-      payload.context.entities = entities;
-
-
-      // var destination;
-     //  if(reponse.destination = undefined){
-     //    destination = response.destination;
-     //  }
-     //  else{
-     //    destination = entities.map(function(entry) {
-     //      if(entry.type == "Location") {
-     //        if(entry.disambiguation && entry.disambiguation.subtype && entry.disambiguation.subtype.indexOf("City") > -1) {
-     //          return(entry.text);
-     //        }
-     //      }
-     //    });
-     //  }
-     //
-     //
-     //
-     //  destination = destination.filter(function(entry) {
-    	// 	if(entry != null) {
-    	// 	 return(entry);
-    	// 	}
-	   //  });
-     //  // console.log("User destination:");
-     //  // console.log(destination[0]);
-     //
-     //  if(destination.length > 0) {
-  	 //   payload.context.destination = destination[0];
-     // } else{
-     //   payload.context.destination = null;
-     // }
-     //
-     //  console.log('\n');
-
-    }
-    else {
 
       console.log(response);
       if(response !== null){
@@ -289,7 +241,7 @@ app.post( '/api/message', function(req, res) {
        //
        //  console.log('\n');
       }
-    }
+
     // Send the input to the conversation service
     conversation.message( payload, function(err, data) {
       if ( err ) {
