@@ -425,11 +425,11 @@ function updateMessage(res, input, response) {
     });
   }
 
-  // else if ( checkRome2Rio( response ) ) {
-	// console.log("reaching Rome2Rio");
-	// response.output.text = getRome2Rio( response.context.originLocation, response.context.destination );
-  //     return.json(response);
-  // }
+   else if ( checkRome2Rio( response ) ) {
+	console.log("reaching Rome2Rio");
+	response.output.text = getRome2Rio( response.context.originLocation, response.context.destination );
+      return.json(response);
+  }
 
   else if ( response.output && response.output.text ) {
     // response.context.yelpTrue = true;
