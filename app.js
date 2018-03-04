@@ -199,9 +199,6 @@ app.post( '/api/message', function(req, res) {
       payload.context.entities = entities;
 
 
-
-
-
       // var destination;
      //  if(reponse.destination = undefined){
      //    destination = response.destination;
@@ -382,7 +379,7 @@ function updateMessage(res, input, response) {
   }
   
   else if ( checkRome2Rio( response ) ) {
-      var logistics = getRome2Rio( response.context.location, response.context.destination );
+      var logistics = getRome2Rio( response.context.originLocation, response.context.destination );
       console.log("reaching Rome2Rio")  
       console.log(logistics)
   }
