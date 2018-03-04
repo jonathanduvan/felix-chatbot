@@ -94,6 +94,81 @@ var PayloadPanel = (function() {
     return null;
   }
 
+  // // Constructs new DOM element to use in displaying the payload
+  // function buildPayloadDomElement(isRequest) {
+  //
+  //   let payloadJson = {};
+  //
+  //   if (!isRequest) {
+  //     let payload = (Api.getResponsePayload());
+  //     console.log(payload);
+  //     let itineraryJson = {};
+  //     itineraryJson["Travel Origin"] = payload.context.originLocation ? payload.context.originLocation : "";
+  //     itineraryJson["Destination"] = payload.context.destination ? payload.context.destination : "";
+  //     itineraryJson["Price Range"] = payload.context.priceRange ? payload.context.priceRange : "";
+  //     itineraryJson["Departure Date"] = payload.context.departureDate ? payload.context.departureDate : "";
+  //     itineraryJson["Return Date"] = payload.context.returnDate ? payload.context.returnDate : "";
+  //     itineraryJson["Preferred Travel Methods"] = payload.context.travelMethods ? payload.context.travelMethods : "";
+  //     itineraryJson["Stuff You Want to Do"] = payload.context.acitivities ? payload.context.acitivites : "";
+  //     itineraryJson["Places You Want to Check Out"] = payload.context.acitivities ? payload.context.yelpSelections : "";
+  //
+  //
+  //     var payloadPrettyString = jsonPrettyPrint(itineraryJson);
+  //     console.log(payloadPrettyString);
+  //     payloadJson = {
+  //       'tagName': 'div',
+  //       'children': [{
+  //         // <div class='header-text'>
+  //         'tagName': 'div',
+  //         'text': 'Travel Itinerary',
+  //         'classNames': ['header-text']
+  //       }, {
+  //         // <div class='code-line responsive-columns-wrapper'>
+  //         'tagName': 'div',
+  //         'classNames': ['code-line', 'responsive-columns-wrapper'],
+  //         'children': [{
+  //           // <div class='line-numbers'>
+  //           'tagName': 'pre',
+  //           'text': createLineNumberString((payloadPrettyString.match(/\n/g) || []).length + 1),
+  //           'classNames': ['line-numbers']
+  //         }, {
+  //           // <div class='payload-text responsive-column'>
+  //           'tagName': 'pre',
+  //           'classNames': ['payload-text', 'responsive-column'],
+  //           'html': payloadPrettyString
+  //         }]
+  //       }]
+  //     };
+  //   }
+  //
+  //   // var payloadJson = {
+  //   //   'tagName': 'div',
+  //   //   'children': [{
+  //   //     // <div class='header-text'>
+  //   //     'tagName': 'div',
+  //   //     'text': isRequest ? 'User input' : 'Watson understands',
+  //   //     'classNames': ['header-text']
+  //   //   }, {
+  //   //     // <div class='code-line responsive-columns-wrapper'>
+  //   //     'tagName': 'div',
+  //   //     'classNames': ['code-line', 'responsive-columns-wrapper'],
+  //   //     'children': [{
+  //   //       // <div class='line-numbers'>
+  //   //       'tagName': 'pre',
+  //   //       'text': createLineNumberString((payloadPrettyString.match(/\n/g) || []).length + 1),
+  //   //       'classNames': ['line-numbers']
+  //   //     }, {
+  //   //       // <div class='payload-text responsive-column'>
+  //   //       'tagName': 'pre',
+  //   //       'classNames': ['payload-text', 'responsive-column'],
+  //   //       'html': payloadPrettyString
+  //   //     }]
+  //   //   }]
+  //   // };
+  //
+  //   return Common.buildDomElement(payloadJson);
+  // }
+
   // Constructs new DOM element to use in displaying the payload
   function buildPayloadDomElement(isRequest) {
     var payloadPrettyString = jsonPrettyPrint(isRequest
