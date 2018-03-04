@@ -165,11 +165,15 @@ app.post( '/api/message', function(req, res) {
   if ( req.body ) {
     if ( req.body.input ) {
       payload.input = req.body.input;
+      console.log(" ");
+      console.log("New Input: " + req.body.input.text);
+
       params = {text: req.body.input.text,features:features};
     }
     if ( req.body.context ) {
       // The client must maintain context/state
       payload.context = req.body.context;
+
 
     }
   }
@@ -183,40 +187,52 @@ app.post( '/api/message', function(req, res) {
       return res.status(error.code || 500).json(error);
     }
     if(response != null){
-      var keywords = response.keywords;
-      console.log('KEYWORDS:');
-      console.log(keywords);
-      var categories = response.categories;
-      console.log('CATEGORIES:');
-      console.log(categories);
-      var entities = response.entities;
-      console.log('ENTITIES:');
-      console.log(entities);
+      console.log(response);
+
+      let keywords = response.keywords;
+      payload.context.keywords = keywords;
+
+      let categories = response.categories;
+      payload.context.categories = categories;
+
+      let entities = response.entities;
+      payload.context.entities = entities;
 
 
-      var destination = entities.map(function(entry) {
-        if(entry.type == "Location") {
-          if(entry.disambiguation && entry.disambiguation.subtype && entry.disambiguation.subtype.indexOf("City") > -1) {
-            return(entry.text);
-          }
-        }
-      });
 
-      destination = destination.filter(function(entry) {
-    		if(entry != null) {
-    		 return(entry);
-    		}
-	    });
-      console.log("User destination:");
-      console.log(destination[0]);
 
-      if(destination.length > 0) {
-  	   payload.context.destination = destination[0];
-     } else{
-       payload.context.destination = null;
-     }
 
-      console.log('\n');
+      // var destination;
+     //  if(reponse.destination = undefined){
+     //    destination = response.destination;
+     //  }
+     //  else{
+     //    destination = entities.map(function(entry) {
+     //      if(entry.type == "Location") {
+     //        if(entry.disambiguation && entry.disambiguation.subtype && entry.disambiguation.subtype.indexOf("City") > -1) {
+     //          return(entry.text);
+     //        }
+     //      }
+     //    });
+     //  }
+     //
+     //
+     //
+     //  destination = destination.filter(function(entry) {
+    	// 	if(entry != null) {
+    	// 	 return(entry);
+    	// 	}
+	   //  });
+     //  // console.log("User destination:");
+     //  // console.log(destination[0]);
+     //
+     //  if(destination.length > 0) {
+  	 //   payload.context.destination = destination[0];
+     // } else{
+     //   payload.context.destination = null;
+     // }
+     //
+     //  console.log('\n');
     }
 
     // Send the input to the conversation service
@@ -238,6 +254,15 @@ app.post( '/api/message', function(req, res) {
  * @return {Object}          The response with the updated message
  */
 function updateMessage(res, input, response) {
+
+
+  if(response.intents[0] != null){
+    console.log("Intent: ");
+    console.log(response.intents[0].intent);
+  }else{
+    console.log("No Intent specified");
+  }
+
   if ( !response.output ) {
     response.output = {};
   } else if ( checkWeather( response ) ) {
@@ -273,6 +298,36 @@ function updateMessage(res, input, response) {
       console.log( 'failure!' );
       console.log( e );
     } );
+  }
+  else if( checkDestination(response)){
+
+    if(typeof response.context.entities[0] === 'undefined'){
+      response.output.text = "Can you make that more specific?"
+
+    }
+    else{
+      response.output.text = "Ok, you want to travel to " + response.context.entities[0].text+". Got it! Where are you traveling from?"
+
+      response.context.destination = response.context.entities[0].text;
+    }
+    speakResponse(response.output.text);
+
+    return res.json(response);
+  }
+  else if( checkOriginLocation(response)){
+
+    if(typeof response.context.entities[0] === 'undefined'){
+      response.output.text = "Can you make that more specific?"
+
+    }
+    else{
+
+      response.context.originLocation = response.context.entities[0].text;
+    }
+
+    speakResponse(response.output.text[0]);
+
+    return res.json(response);
   }
 
   else if ( checkYelp( response ) ) {
@@ -454,6 +509,16 @@ function checkWeather(data) {
 }
 function checkYelp(data) {
   return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'Yelp') && (data.context.destination) && (data.context.searchTerm));
+
+}
+
+function checkDestination(data) {
+  return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'Destination'));
+
+}
+
+function checkOriginLocation(data) {
+  return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'OriginLocation'));
 
 }
 
