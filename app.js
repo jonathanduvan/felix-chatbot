@@ -462,9 +462,9 @@ function updateMessage(res, input, response) {
   }
   
   else if ( checkRome2Rio( response ) ) {
-      var logistics = getRome2Rio( response.context.originLocation, response.context.destination );
-      console.log("reaching Rome2Rio")  
-      console.log(logistics)
+	console.log("reaching Rome2Rio");
+	response.output.text = getRome2Rio( response.context.originLocation, response.context.destination );
+      return.json(response);
   }
   
   else if ( response.output && response.output.text ) {
@@ -688,6 +688,7 @@ function getRome2Rio(place1, place2) {
     .header("Accept", "application/json")
     .end(function (result) {
      console.log(result.status, result.headers, result.body);
+	    return result.status + result.headers + result.body;
     });
   }
 }
