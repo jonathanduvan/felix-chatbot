@@ -624,11 +624,11 @@ function yelpQuery(keyword, response) {
     return responseCards;
   });
 }
-function checkRome2Rio(data) {
-	console.log("we hit checkRome2Rio");
-  return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'Rome2Rio') && (data.context.destination) && (data.context.originLocation));
-
-}
+// function checkRome2Rio(data) {
+// 	console.log("we hit checkRome2Rio");
+//   return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'Rome2Rio') && (data.context.destination) && (data.context.originLocation));
+//
+// }
 
 ////
 
