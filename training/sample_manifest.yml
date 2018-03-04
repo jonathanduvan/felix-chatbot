@@ -3,7 +3,7 @@ applications:
   memory: 256M
   instances: 1
   domain: mybluemix.net
-  name: your_app_name
+  name: Felix
   host: same as above
   disk_quota: 1024M
   services:

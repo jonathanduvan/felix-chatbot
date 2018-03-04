@@ -58,4 +58,38 @@ var Api = (function() {
     // Send request
     http.send(params);
   }
+
+  // function sendAudioRequest(audio) {
+  //
+  //   var payloadToWatson = {};
+  //   if (audio) {
+  //     payloadToWatson.input = {
+  //       audio: audio
+  //     };
+  //   }
+  //   // Built http request
+  //   var http = new XMLHttpRequest();
+  //   http.open('POST', '/api/speechAuth', true);
+  //   http.setRequestHeader('Content-type', 'audio/wave');
+  //   http.onreadystatechange = function() {
+  //     if (http.readyState === 4 && http.status === 200 && http.responseText) {
+  //       var context;
+  //       var latestResponse = Api.getResponsePayload();
+  //       if (latestResponse) {
+  //         context = latestResponse.context;
+  //       }
+  //       Api.sendRequest(http.responseText, context);
+  //     }
+  //   };
+  //
+  //   var params = JSON.stringify(payloadToWatson);
+  //   // Stored in variable (publicly visible through Api.getRequestPayload)
+  //   // to be used throughout the application
+  //   if (Object.getOwnPropertyNames(payloadToWatson).length !== 0) {
+  //     Api.setRequestPayload(params);
+  //   }
+  //
+  //   // Send request
+  //   http.send(payloadToWatson);
+  // }
 }());
