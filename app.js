@@ -165,29 +165,30 @@ app.post( '/api/message', function(req, res) {
   if ( req.body ) {
     if ( req.body.input ) {
       payload.input = req.body.input;
-      console.log(" ");
-      console.log("New Input: " + req.body.input.text);
+
 
       params = {text: req.body.input.text,features:features};
     }
     if ( req.body.context ) {
       // The client must maintain context/state
       payload.context = req.body.context;
+      // console.log(req.body.context);
 
 
     }
   }
 
   if(params == null) {
-   params = {text: "No request body context",features:features}
+   params = {text: "No request body input",features:features}
   }
 
+  console.log(params);
+  // console.log(payload);
   nlu.analyze(params, function(error, response) {
     if (error) {
-      return res.status(error.code || 500).json(error);
-    }
-    if(response != null){
-      console.log(response);
+
+
+      // return res.status(error.code || 500).json(response);
 
       let keywords = response.keywords;
       payload.context.keywords = keywords;
@@ -230,16 +231,74 @@ app.post( '/api/message', function(req, res) {
      // }
      //
      //  console.log('\n');
-    }
 
+    }
+    else {
+
+      console.log(response);
+      if(response !== null){
+
+        let keywords = response.keywords;
+        payload.context.keywords = keywords;
+
+        let categories = response.categories;
+        payload.context.categories = categories;
+
+        let entities = response.entities;
+        payload.context.entities = entities;
+
+        let destination = entities.map(function(entry){
+          if(entry.type == "Location") {
+                 if(entry.disambiguation && entry.disambiguation.subtype && entry.disambiguation.subtype.indexOf("City") > -1) {
+                   return(entry.text);
+                 }
+               }
+        });
+
+
+
+        // var destination;
+       //  if(reponse.destination = undefined){
+       //    destination = response.destination;
+       //  }
+       //  else{
+       //    destination = entities.map(function(entry) {
+       //      if(entry.type == "Location") {
+       //        if(entry.disambiguation && entry.disambiguation.subtype && entry.disambiguation.subtype.indexOf("City") > -1) {
+       //          return(entry.text);
+       //        }
+       //      }
+       //    });
+       //  }
+       //
+       //
+       //
+       //  destination = destination.filter(function(entry) {
+      	// 	if(entry != null) {
+      	// 	 return(entry);
+      	// 	}
+  	   //  });
+       //  // console.log("User destination:");
+       //  // console.log(destination[0]);
+       //
+       //  if(destination.length > 0) {
+    	 //   payload.context.destination = destination[0];
+       // } else{
+       //   payload.context.destination = null;
+       // }
+       //
+       //  console.log('\n');
+      }
+    }
     // Send the input to the conversation service
     conversation.message( payload, function(err, data) {
       if ( err ) {
         return res.status( err.code || 500 ).json( err );
       }
       updateMessage( res, payload, data );
-    } );
+    });
   });
+
 
 } );
 
@@ -262,7 +321,8 @@ function updateMessage(res, input, response) {
 
   if ( !response.output ) {
     response.output = {};
-  } else if ( checkWeather( response ) ) {
+  }
+  else if ( checkWeather( response ) ) {
     var path = getLocationURL( response.context.long, response.context.lat );
 
     var options = {
@@ -296,34 +356,57 @@ function updateMessage(res, input, response) {
       console.log( e );
     } );
   }
-  else if( checkDestination(response)){
+  else if( checkWantTo(response)){
 
-    if(typeof response.context.entities[0] === 'undefined'){
-      response.output.text = "Can you make that more specific?"
+    // if(typeof response.context.entities[0] === 'undefined'){
+    //   response.output.text = "Can you make that more specific?"
+    // }
+    // else{
+    //   response.output.text = "Ok, you want to travel to " + response.context.entities[0].text+". Got it! Where are you traveling from?"
+    //   response.context.destination = response.context.entities[0].text;
+    // }
+    //
+    // speakResponse(response.output.text);
+    // return res.json(response);
+    console.log(response.context.categories);
+    let keywords = response.context.keywords;
+    let categories = response.context.categories;
+    let entities = response.context.entities;
 
+
+    let destination = entities.map(function(entry){
+      if(entry.type == "Location") {
+             if(entry.disambiguation && entry.disambiguation.subtype && entry.disambiguation.subtype.indexOf("City") > -1) {
+               return(entry.text);
+             }
+           }
+    });
+
+
+    if((typeof(destination[0]) !== 'undefined') ){
+      response.output.text = "Ok, I understand you want to travel to " + destination[0] + ". Got it! Where are you traveling from?"
+
+      response.context.destination = destination[0];
     }
     else{
-      response.output.text = "Ok, you want to travel to " + response.context.entities[0].text+". Got it! Where are you traveling from?"
-
-      response.context.destination = response.context.entities[0].text;
+      console.log(false);
     }
-    speakResponse(response.output.text);
 
+    speakResponse(response.output.text);
     return res.json(response);
+
   }
   else if( checkOriginLocation(response)){
 
     if(typeof response.context.entities[0] === 'undefined'){
       response.output.text = "Can you make that more specific?"
-
     }
     else{
-
       response.context.originLocation = response.context.entities[0].text;
+      response.output.text = "Ok, you are traveling from "+response.context.originLocation+" to "+response.context.destination+ ", correct?"
     }
 
-    speakResponse(response.output.text[0]);
-
+    speakResponse(response.output.text);
     return res.json(response);
   }
 
@@ -390,6 +473,8 @@ function updateMessage(res, input, response) {
     // response.context.destination = 'Los Angeles';
     // response.context.priceRange = "$$";
     response.context.yelpBusinessOptions = {};
+    response.context.destination = response.context.destination !== null ? response.context.destination : null ;
+    response.context.originLocation = response.context.originLocation !== null ? response.context.originLocation : null ;
     speakResponse(response.output.text[0]);
       // response.output.text = (`
       //   <div class="card small">
@@ -515,13 +600,13 @@ function checkYelp(data) {
 
 }
 
-function checkDestination(data) {
-  return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'Destination'));
+function checkWantTo(data) {
+  return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'WantTo'));
 
 }
 
 function checkOriginLocation(data) {
-  return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'OriginLocation'));
+  return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'OriginLocation') && (data.context.destination));
 
 }
 
