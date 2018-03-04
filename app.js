@@ -19,9 +19,16 @@
 require( 'dotenv' ).config( {silent: true} );
 
 var express = require( 'express' );  // app server
+var fs = require('fs');
 var bodyParser = require( 'body-parser' );  // parser for post requests
 var watson = require( 'watson-developer-cloud' );  // watson sdk
+// var recognizeMic = require('watson-speech/speech-to-text/recognize-microphone');
+
+//var TextToSpeechV1 = require('watson-developer-cloud/text-to-speech/v1');
+
 const yelp = require('yelp-fusion');
+var player = require('play-sound')('afplay');
+const mic = require('mic');
 
 // The following requires are needed for logging purposes
 var uuid = require( 'uuid' );
@@ -55,15 +62,62 @@ var conversation = watson.conversation( {
   version: 'v1'
 } );
 
-// const stt = new watson.SpeechToTextV1({
-//   // if left undefined, username and password to fall back to the SPEECH_TO_TEXT_USERNAME and
-//   // SPEECH_TO_TEXT_PASSWORD environment properties, and then to VCAP_SERVICES (on Bluemix)
-//   // username: '',
-//   // password: ''
+const speechToText = watson.speech_to_text({
+  url: "https://stream.watsonplatform.net/speech-to-text/api",
+  username: process.env.SPEECH_TO_TEXT_USERNAME || '<username>',
+  password: process.env.SPEECH_TO_TEXT_PASSWORD || '<password>',
+  version: 'v1',
+});
+
+const textToSpeech = watson.text_to_speech({
+  url: 'https://stream.watsonplatform.net/text-to-speech/api',
+  username: process.env.TEXT_TO_SPEECH_USERNAME || '<username>',
+  password: process.env.TEXT_TO_SPEECH_PASSWORD || '<password>',
+  version: 'v1',
+});
+
+
+//// TEST SPEECH CODE
+// speechToText.getToken({
+//   url: 'https://stream.watsonplatform.net/speech-to-text/api'
+// },
+// function (err, token) {
+//   if (!token) {
+//     console.log('error:', err);
+//   } else {
+//     var stream = speechToText.recognizeMicrophone({
+//         token: token,
+//     });
+//   }
 // });
+///////////////////////
+
+
+var config = {
+  text: 'Hello from IBM Watson',
+  voice: 'en-US_MichaelVoice', // Optional voice
+  accept: 'audio/mp3'
+};
 
 const client = yelp.client(process.env.YELP_KEY);
 
+const speakResponse = (text) => {
+  const params = {
+    text: text,
+    voice: config.voice,
+    accept: 'audio/mp3'
+  };
+  textToSpeech.synthesize(params)
+  .pipe(fs.createWriteStream('output.mp3'))
+  .on('close', () => {
+      player.play('output.mp3');
+    });
+}
+
+// app.get('/api/speechAuth', function(req,res) {
+//   console.log(req);
+//   console.log(res);
+// });
 // Endpoint to be call from the client side
 app.post( '/api/message', function(req, res) {
   var workspace = process.env.WORKSPACE_ID || '<workspace-id>';
@@ -145,11 +199,73 @@ function updateMessage(res, input, response) {
     } );
   }
   else if ( checkYelp( response ) ) {
-    console.log('yelp Time');
+    // res.json(getYelpInfo(response));
+
+    let keyTerm = response.context.searchTerm;
+    let location = response.context.destination;
+    let priceRange = response.context.priceRange;
+    let yelpBusinessOptions = response.context.yelpBusinessOptions;
+
+    client.search({
+      term: keyTerm,
+      location: location
+    }).then(yelpResponse => {
+      let responseCards = [];
+      for (let key in yelpResponse.jsonBody.businesses) {
+        if (yelpResponse.jsonBody.businesses[key]) {
+          console.log(yelpResponse.jsonBody.businesses[key]);
+          responseCards.push(
+  `          <div class="card">
+              <div class="card-image waves-effect waves-block waves-light">
+               <img class="activator" src="${yelpResponse.jsonBody.businesses[key].image_url}">
+              </div>
+             <div class="card-content">
+               <span class="card-title activator grey-text text-darken-4">${yelpResponse.jsonBody.businesses[key].name}<i class="material-icons right">more_vert</i></span>
+               <p><a href="${yelpResponse.jsonBody.businesses[key].url}">Link to Page on Yelp</a></p>
+             </div>
+             <div class="card-reveal">
+               <span class="card-title grey-text text-darken-4">${yelpResponse.jsonBody.businesses[key].name}<i class="material-icons right">close</i></span>
+              <p><b>Phone: </b>${yelpResponse.jsonBody.businesses[key].phone}</p>
+               <p><b>Distance: </b>${yelpResponse.jsonBody.businesses[key].distance}</p>
+              <p><b>Rating: </b>${yelpResponse.jsonBody.businesses[key].rating}</p>
+               <p><b>Price: </b>${yelpResponse.jsonBody.businesses[key].price}</p>
+             </div>
+            </div>`
+          );
+          yelpBusinessOptions[yelpResponse.jsonBody.businesses[key].url] = yelpResponse.jsonBody.businesses[key].name;
+        }
+      }
+      let responseText =("\n" + "Here are some businesses that match your query powered by Yelp. Anything catch your eye??");
+      responseCards.push(responseText);
+      speakResponse(responseText);
+      console.log(response.output);
+      response.context.yelpBusinessOptions = yelpBusinessOptions;
+      response.output.text = responseCards;
+      return res.json(response);
+    }).catch(e => {
+      console.log(e);
+      return res.json(response);
+    });
   }
 
   else if ( response.output && response.output.text ) {
-    return res.json( response );
+    // response.context.yelpTrue = true;
+    // response.context.searchTerm = 'scuba diving';
+    // response.context.destination = 'Los Angeles';
+    // response.context.priceRange = "$$";
+    response.context.yelpBusinessOptions = {};
+    speakResponse(response.output.text[0]);
+      // response.output.text = (`
+      //   <div class="card small">
+      //     <div class="card-image">
+      //       <img src="https://i.ytimg.com/vi/rX-YiYHahoo/maxresdefault.jpg">
+      //       <span class="card-title">Card Title</span>
+      //     </div>
+      //     <div class="card-content">
+      //       <p>Test information</p>
+      //     </div>
+      //   </div>`);
+      return res.json( response );
   }
 }
 
@@ -254,6 +370,56 @@ if ( cloudantUrl ) {
 function checkWeather(data) {
   //return data.intents && data.intents.length > 0 && data.intents[0].intent === 'weather'
     return data.entities && data.entities.length > 0 && data.entities[0].entity === 'sys-date';
+}
+function checkYelp(data) {
+  return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'Yelp') && (data.context.destination) && (data.context.searchTerm));
+
+}
+
+////
+
+function getYelpInfo(response) {
+  let keyTerm = response.context.searchTerm;
+  let location = response.context.destination;
+  let priceRange = response.context.priceRange;
+
+  client.search({
+    term: keyTerm,
+    location: location
+  }).then(response => {
+    let responseCards = [];
+    for (let key in response.jsonBody.businesses) {
+      if (response.jsonBody.businesses[key]) {
+        responseCards.push(
+`          <div class="card">
+            <div class="card-image waves-effect waves-block waves-light">
+             <img class="activator" src="${response.jsonBody.businesses[key].image_url}">
+            </div>
+           <div class="card-content">
+             <span class="card-title activator grey-text text-darken-4">${response.jsonBody.businesses[key].name}<i class="material-icons right">more_vert</i></span>
+             <p><a href="${response.jsonBody.businesses[key].url}">Link to Page on Yelp</a></p>
+           </div>
+           <div class="card-reveal">
+             <span class="card-title grey-text text-darken-4">${response.jsonBody.businesses[key].name}<i class="material-icons right">close</i></span>
+            <p><b>P:<hone Number/b>${response.jsonBody.businesses[key].phone}</p>
+             <p><b>Distance:</b>${response.jsonBody.businesses[key].distance}</p>
+            <p><b>Rating:</b>${response.jsonBody.businesses[key].rating}</p>
+             <p><b>Price:</b>${response.jsonBody.businesses[key].price}</p>
+           </div>
+          </div>`
+        );
+      }
+    }
+    let responseText =("\n" + "Here are some businesses that match your query powered by Yelp. Anything catch your eye??");
+    responseCards.push(responseText);
+    speakResponse(responseText);
+    console.log(response);
+    response.output.text = responseCards;
+    return response;
+  }).catch(e => {
+    console.log(e);
+    return e;
+  });
 }
 
 function replaceParams(original, args) {

@@ -2,15 +2,23 @@
 <head>
   <base href="/">
   <title>Conversation Chat App</title>
+
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta property="og:image" content="conversation.svg" />
   <meta property="og:title" content="Conversation Chat Simple" />
   <meta property="og:description" content="Sample application that shows how to use the Conversation API to identify user intents" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.1/css/materialize.min.css">
   <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
+  <nav>
+    <div class="nav-wrapper valign-wrapper blue darken-2">
+      <a href="#" class="brand-logo">Felix</a>
+    </div>
+  </nav>
   <div id="view-change-button" class="button" onclick="PayloadPanel.togglePanel(event, this)">
     <img class="option full" src="../img/Chat Button.png">
     <img class="option not-full" src="../img/Code Button.png">
@@ -20,6 +28,7 @@
       <div class="chat-column">
         <div id="scrollingChat"></div>
         <label for="textInput" class="inputOutline">
+          <i class="material-icons">mic</i>
           <input id="textInput" class="input responsive-column"
             placeholder="Type something" type="text"
             onkeydown="ConversationPanel.inputKeyDown(event, this)">
@@ -40,5 +49,8 @@
   <script src="js/conversation.js"></script>
   <script src="js/payload.js"></script>
   <script src="js/global.js"></script>
+  <script type="text/javascript" src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.1/js/materialize.min.js"></script>
+
 </body>
 </html>
