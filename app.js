@@ -185,21 +185,6 @@ app.post( '/api/message', function(req, res) {
   console.log(params);
   // console.log(payload);
   nlu.analyze(params, function(error, response) {
-    if (error) {
-
-
-      // return res.status(error.code || 500).json(response);
-
-      let keywords = response.keywords;
-      payload.context.keywords = keywords;
-
-      let categories = response.categories;
-      payload.context.categories = categories;
-
-      let entities = response.entities;
-      payload.context.entities = entities;
-
-
       // var destination;
      //  if(reponse.destination = undefined){
      //    destination = response.destination;
@@ -231,9 +216,6 @@ app.post( '/api/message', function(req, res) {
      // }
      //
      //  console.log('\n');
-
-    }
-    else {
 
       console.log(response);
       if(response !== null){
@@ -289,7 +271,6 @@ app.post( '/api/message', function(req, res) {
        //
        //  console.log('\n');
       }
-    }
     // Send the input to the conversation service
     conversation.message( payload, function(err, data) {
       if ( err ) {
@@ -387,25 +368,39 @@ function updateMessage(res, input, response) {
       response.output.text = "Ok, I understand you want to travel to " + destination[0] + ". Got it! Where are you traveling from?"
 
       response.context.destination = destination[0];
+      return res.json(response);
 
     }
     else{
-      let responseCards = [];
-      response.context.text = [];
-      for(let i = 0; i < keywords.length; i++){
-        // let tempCards = yelpQuery(keywords[i].text, response, responseCards);
-        // responseCards.push.apply(responseCards, tempCards);
-        // console.log('CURRENT CARDS: ', responseCards);
-        yelpQuery(keywords[i].text, response);
-        console.log('current response text: ', response.output.text);
 
-      }
-      console.log('final response cards: ', response.output.text);
+      const promises = Array.from(Array(keywords.length).keys()).map((x) => {
+       return yelpQuery(keywords[x].text, response); });
+      Promise.all(promises)
+      .then((yelpOptions) => {
+        let merged = [].concat.apply([], yelpOptions);
+        let responseText =("\n" + "Here are some businesses that match your query powered by Yelp. Anything catch your eye??");
+        merged.push(responseText);
+        response.output.text = merged;
+        speakResponse(responseText);
+        return res.json(response);
+      })
+      .catch((error) => {
+        console.log(error);
+      })
+      // response.context.text = [];
+      // for(let i = 0; i < keywords.length; i++){
+      //   // let tempCards = yelpQuery(keywords[i].text, response, responseCards);
+      //   // responseCards.push.apply(responseCards, tempCards);
+      //   // console.log('CURRENT CARDS: ', responseCards);
+      //   yelpQuery(keywords[i].text, response);
+      //   console.log('current response text: ', response.output.text);
+      //
+      // }
+      // console.log('final response cards: ', response.output.text);
 
     }
 
     // speakResponse(response.output.text);
-    return res.json(response);
 
   }
   else if( checkOriginLocation(response)){
@@ -472,13 +467,13 @@ function updateMessage(res, input, response) {
       return res.json(response);
     });
   }
-  
+
   else if ( checkRome2Rio( response ) ) {
       var logistics = getRome2Rio( response.context.originLocation, response.context.destination );
-      console.log("reaching Rome2Rio")  
-      console.log(logistics)
+      console.log("reaching Rome2Rio");
+      console.log(logistics);
   }
-  
+
   else if ( response.output && response.output.text ) {
     // response.context.yelpTrue = true;
     // response.context.searchTerm = 'scuba diving';
@@ -499,9 +494,6 @@ function updateMessage(res, input, response) {
       //     </div>
       //   </div>`);
       return res.json( response );
-  }
-  else{
-
   }
 }
 
@@ -624,53 +616,56 @@ function checkOriginLocation(data) {
 
 
 function yelpQuery(keyword, response) {
-  let responseCards = response.output.text;
-  console.log('keyword: ' + keyword);
-  let location = response.context.destination;
-  console.log('location: ' + location);
-  let priceRange = response.context.priceRange;
-  let yelpBusinessOptions = response.context.yelpBusinessOptions;
+  console.log('keyword');
+  return new Promise((fulfill, reject) => {
+    let responseCards = response.output.text;
+    console.log('keyword: ' + keyword);
+    let location = response.context.destination;
+    console.log('location: ' + location);
+    let priceRange = response.context.priceRange;
+    let yelpBusinessOptions = response.context.yelpBusinessOptions;
 
-  client.search({
-    term: keyword,
-    location: location
-  }).then(yelpResponse => {
-    for (let key in yelpResponse.jsonBody.businesses) {
-      if (yelpResponse.jsonBody.businesses[key]) {
-        console.log('PUSHING A CARD');
-        responseCards.push(
-`          <div class="card">
-            <div class="card-image waves-effect waves-block waves-light">
-             <img class="activator" src="${yelpResponse.jsonBody.businesses[key].image_url}">
-            </div>
-           <div class="card-content">
-             <span class="card-title activator grey-text text-darken-4">${yelpResponse.jsonBody.businesses[key].name}<i class="material-icons right">more_vert</i></span>
-             <p><a href="${yelpResponse.jsonBody.businesses[key].url}">Link to Page on Yelp</a></p>
-           </div>
-           <div class="card-reveal">
-             <span class="card-title grey-text text-darken-4">${yelpResponse.jsonBody.businesses[key].name}<i class="material-icons right">close</i></span>
-            <p><b>Phone: </b>${yelpResponse.jsonBody.businesses[key].phone}</p>
-             <p><b>Distance: </b>${yelpResponse.jsonBody.businesses[key].distance}</p>
-            <p><b>Rating: </b>${yelpResponse.jsonBody.businesses[key].rating}</p>
-             <p><b>Price: </b>${yelpResponse.jsonBody.businesses[key].price}</p>
-           </div>
-          </div>`
-        );
-        yelpBusinessOptions[yelpResponse.jsonBody.businesses[key].url] = yelpResponse.jsonBody.businesses[key].name;
+    client.search({
+      term: keyword,
+      location: location
+    }).then(yelpResponse => {
+      for (let key in yelpResponse.jsonBody.businesses) {
+        if (yelpResponse.jsonBody.businesses[key]) {
+          console.log('PUSHING A CARD');
+          responseCards.push(
+  `          <div class="card">
+              <div class="card-image waves-effect waves-block waves-light">
+               <img class="activator" src="${yelpResponse.jsonBody.businesses[key].image_url}">
+              </div>
+             <div class="card-content">
+               <span class="card-title activator grey-text text-darken-4">${yelpResponse.jsonBody.businesses[key].name}<i class="material-icons right">more_vert</i></span>
+               <p><a href="${yelpResponse.jsonBody.businesses[key].url}">Link to Page on Yelp</a></p>
+             </div>
+             <div class="card-reveal">
+               <span class="card-title grey-text text-darken-4">${yelpResponse.jsonBody.businesses[key].name}<i class="material-icons right">close</i></span>
+              <p><b>Phone: </b>${yelpResponse.jsonBody.businesses[key].phone}</p>
+               <p><b>Distance: </b>${yelpResponse.jsonBody.businesses[key].distance}</p>
+              <p><b>Rating: </b>${yelpResponse.jsonBody.businesses[key].rating}</p>
+               <p><b>Price: </b>${yelpResponse.jsonBody.businesses[key].price}</p>
+             </div>
+            </div>`
+          );
+          yelpBusinessOptions[yelpResponse.jsonBody.businesses[key].url] = yelpResponse.jsonBody.businesses[key].name;
+        }
       }
-    }
-    // let responseText =("\n" + "Here are some businesses that match your query powered by Yelp. Anything catch your eye??");
-    // responseCards.push(responseText);
-    // speakResponse(responseText);
+      // let responseText =("\n" + "Here are some businesses that match your query powered by Yelp. Anything catch your eye??");
+      // responseCards.push(responseText);
+      // speakResponse(responseText);
 
-    response.context.yelpBusinessOptions = yelpBusinessOptions;
-    response.context.text = responseCards;
-    // response.output.text = responseCards;
-    return responseCards;
-  }).catch(e => {
-    console.log('ERROR');
-    return responseCards;
+      response.context.yelpBusinessOptions = yelpBusinessOptions;
+      // response.output.text = responseCards;
+      fulfill(responseCards);
+    }).catch(e => {
+      reject(e);
+    });
   });
+
+}
 
 function checkRome2Rio(data) {
 	console.log("we hit checkRome2Rio");
