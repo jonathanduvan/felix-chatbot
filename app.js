@@ -185,7 +185,7 @@ app.post( '/api/message', function(req, res) {
   console.log(params);
   // console.log(payload);
   nlu.analyze(params, function(error, response) {
-<<<<<<< HEAD
+
       // var destination;
      //  if(reponse.destination = undefined){
      //    destination = response.destination;
@@ -218,10 +218,6 @@ app.post( '/api/message', function(req, res) {
      //
      //  console.log('\n');
 
-=======
-
-
->>>>>>> cd981363fed410646886dd573e5f18081a470478
       console.log(response);
       if(response !== null){
 
@@ -276,10 +272,7 @@ app.post( '/api/message', function(req, res) {
        //
        //  console.log('\n');
       }
-<<<<<<< HEAD
-=======
 
->>>>>>> cd981363fed410646886dd573e5f18081a470478
     // Send the input to the conversation service
     conversation.message( payload, function(err, data) {
       if ( err ) {
@@ -300,7 +293,6 @@ app.post( '/api/message', function(req, res) {
  * @return {Object}          The response with the updated message
  */
 function updateMessage(res, input, response) {
-
 
   if(response.intents[0] != null){
     console.log("Intent: ");
@@ -348,6 +340,8 @@ function updateMessage(res, input, response) {
   }
   else if( checkWantTo(response)){
 
+
+
     // if(typeof response.context.entities[0] === 'undefined'){
     //   response.output.text = "Can you make that more specific?"
     // }
@@ -363,22 +357,39 @@ function updateMessage(res, input, response) {
     let categories = response.context.categories;
     let entities = response.context.entities;
 
+    // console.log( response.input.text);
+
+
 
     let destination = entities.map(function(entry){
       if(entry.type == "Location") {
-             if(entry.disambiguation && entry.disambiguation.subtype && entry.disambiguation.subtype.indexOf("City") > -1) {
-               return(entry.text);
-             }
-           }
+         if(entry.disambiguation && entry.disambiguation.subtype && entry.disambiguation.subtype.indexOf("City") > -1) {
+           return(entry.text);
+         }
+         else{
+           return(entry.type)
+
+         }
+      }
+      else{
+
+      }
     });
 
 
-    if((typeof(destination[0]) !== 'undefined') ){
+
+    console.log("Destination:", destination[0]);
+    if((typeof(destination[0]) !== 'undefined' && destination[0] !== "Location") ){
       response.output.text = "Ok, I understand you want to travel to " + destination[0] + ". Got it! Where are you traveling from?"
 
       response.context.destination = destination[0];
       return res.json(response);
 
+    }
+    else if(destination[0] === "Location"){
+      response.output.text = "Can you give me a city in "+entities[0].text+"?";
+
+      return res.json(response);
     }
     else{
 
@@ -395,6 +406,8 @@ function updateMessage(res, input, response) {
       })
       .catch((error) => {
         console.log(error);
+        response.output.text = "I'm sorry. We couldn't find your desired entity in " +response.context.destination+" using Yelp.";
+        return res.json(response);
       })
       // response.context.text = [];
       // for(let i = 0; i < keywords.length; i++){
@@ -409,9 +422,17 @@ function updateMessage(res, input, response) {
 
     }
 
+
     // speakResponse(response.output.text);
 
   }
+  // else if( checkLocationSpecified(response)){
+  //   if(response.context.destination === null){
+  //     response.output.text = "Ok, I understand you want to travel to " + response.entities[0].value + ". Got it! Where are you traveling from?"
+  //   }
+  //
+  //   return res.json(response);
+  // }
   else if( checkOriginLocation(response)){
 
     if(typeof response.context.entities[0] === 'undefined'){
@@ -426,79 +447,73 @@ function updateMessage(res, input, response) {
     return res.json(response);
   }
 
-  else if ( checkYelp( response ) ) {
-    // res.json(getYelpInfo(response));
+  // else if ( checkYelp( response ) ) {
+  //   // res.json(getYelpInfo(response));
+  //
+  //
+  //   let keyTerm = response.context.searchTerm;
+  //   let location = response.context.destination;
+  //   let priceRange = response.context.priceRange;
+  //   let yelpBusinessOptions = response.context.yelpBusinessOptions;
+  //
+  //   client.search({
+  //     term: keyTerm,
+  //     location: location
+  //   }).then(yelpResponse => {
+  //     let responseCards = [];
+  //     for (let key in yelpResponse.jsonBody.businesses) {
+  //       if (yelpResponse.jsonBody.businesses[key]) {
+  //         console.log(yelpResponse.jsonBody.businesses[key]);
+  //         responseCards.push(
+  // `          <div class="card">
+  //             <div class="card-image waves-effect waves-block waves-light">
+  //              <img class="activator" src="${yelpResponse.jsonBody.businesses[key].image_url}">
+  //             </div>
+  //            <div class="card-content">
+  //              <span class="card-title activator grey-text text-darken-4">${yelpResponse.jsonBody.businesses[key].name}<i class="material-icons right">more_vert</i></span>
+  //              <p><a href="${yelpResponse.jsonBody.businesses[key].url}">Link to Page on Yelp</a></p>
+  //            </div>
+  //            <div class="card-reveal">
+  //              <span class="card-title grey-text text-darken-4">${yelpResponse.jsonBody.businesses[key].name}<i class="material-icons right">close</i></span>
+  //             <p><b>Phone: </b>${yelpResponse.jsonBody.businesses[key].phone}</p>
+  //              <p><b>Distance: </b>${yelpResponse.jsonBody.businesses[key].distance}</p>
+  //             <p><b>Rating: </b>${yelpResponse.jsonBody.businesses[key].rating}</p>
+  //              <p><b>Price: </b>${yelpResponse.jsonBody.businesses[key].price}</p>
+  //            </div>
+  //           </div>`
+  //         );
+  //         yelpBusinessOptions[yelpResponse.jsonBody.businesses[key].url] = yelpResponse.jsonBody.businesses[key].name;
+  //       }
+  //     }
+  //     let responseText =("\n" + "Here are some businesses that match your query powered by Yelp. Anything catch your eye??");
+  //     responseCards.push(responseText);
+  //     speakResponse(responseText);
+  //     console.log(response.output);
+  //     response.context.yelpBusinessOptions = yelpBusinessOptions;
+  //     response.output.text = responseCards;
+  //     return res.json(response);
+  //   }).catch(e => {
+  //     console.log('here');
+  //     console.log(e);
+  //     return res.json(response);
+  //   });
+  // }
 
 
-    let keyTerm = response.context.searchTerm;
-    let location = response.context.destination;
-    let priceRange = response.context.priceRange;
-    let yelpBusinessOptions = response.context.yelpBusinessOptions;
-
-    client.search({
-      term: keyTerm,
-      location: location
-    }).then(yelpResponse => {
-      let responseCards = [];
-      for (let key in yelpResponse.jsonBody.businesses) {
-        if (yelpResponse.jsonBody.businesses[key]) {
-          console.log(yelpResponse.jsonBody.businesses[key]);
-          responseCards.push(
-  `          <div class="card">
-              <div class="card-image waves-effect waves-block waves-light">
-               <img class="activator" src="${yelpResponse.jsonBody.businesses[key].image_url}">
-              </div>
-             <div class="card-content">
-               <span class="card-title activator grey-text text-darken-4">${yelpResponse.jsonBody.businesses[key].name}<i class="material-icons right">more_vert</i></span>
-               <p><a href="${yelpResponse.jsonBody.businesses[key].url}">Link to Page on Yelp</a></p>
-             </div>
-             <div class="card-reveal">
-               <span class="card-title grey-text text-darken-4">${yelpResponse.jsonBody.businesses[key].name}<i class="material-icons right">close</i></span>
-              <p><b>Phone: </b>${yelpResponse.jsonBody.businesses[key].phone}</p>
-               <p><b>Distance: </b>${yelpResponse.jsonBody.businesses[key].distance}</p>
-              <p><b>Rating: </b>${yelpResponse.jsonBody.businesses[key].rating}</p>
-               <p><b>Price: </b>${yelpResponse.jsonBody.businesses[key].price}</p>
-             </div>
-            </div>`
-          );
-          yelpBusinessOptions[yelpResponse.jsonBody.businesses[key].url] = yelpResponse.jsonBody.businesses[key].name;
-        }
-      }
-      let responseText =("\n" + "Here are some businesses that match your query powered by Yelp. Anything catch your eye??");
-      responseCards.push(responseText);
-      speakResponse(responseText);
-      console.log(response.output);
-      response.context.yelpBusinessOptions = yelpBusinessOptions;
-      response.output.text = responseCards;
-      return res.json(response);
-    }).catch(e => {
-      console.log(e);
-      return res.json(response);
-    });
-  }
-
-<<<<<<< HEAD
   else if ( checkRome2Rio( response ) ) {
       var logistics = getRome2Rio( response.context.originLocation, response.context.destination );
       console.log("reaching Rome2Rio");
       console.log(logistics);
   }
-=======
-  //  else if ( checkRome2Rio( response ) ) {
-	// console.log("reaching Rome2Rio");
-	// response.output.text = getRome2Rio( response.context.originLocation, response.context.destination );
-  //     return.json(response);
-  // }
->>>>>>> cd981363fed410646886dd573e5f18081a470478
+
 
   else if ( response.output && response.output.text ) {
     // response.context.yelpTrue = true;
     // response.context.searchTerm = 'scuba diving';
     // response.context.destination = 'Los Angeles';
     // response.context.priceRange = "$$";
-    response.context.yelpBusinessOptions = {};
-    response.context.destination = response.context.destination !== null ? response.context.destination : null ;
-    response.context.originLocation = response.context.originLocation !== null ? response.context.originLocation : null ;
+    // response.context.destination = response.context.destination !== null ? response.context.destination : null ;
+    // response.context.originLocation = response.context.originLocation !== null ? response.context.originLocation : null ;
     speakResponse(response.output.text[0]);
       // response.output.text = (`
       //   <div class="card small">
@@ -625,6 +640,9 @@ function checkWantTo(data) {
   return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'WantTo'));
 
 }
+function checkLocationSpecified(data){
+  return((typeof data.entities  !== 'undefined'  && data.entities != null && data.entities.length != null && data.entities.length > 0));
+}
 
 function checkOriginLocation(data) {
   return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'OriginLocation') && (data.context.destination));
@@ -681,7 +699,7 @@ function yelpQuery(keyword, response) {
       reject(e);
     });
   });
-<<<<<<< HEAD
+
 
 }
 
@@ -689,8 +707,7 @@ function checkRome2Rio(data) {
 	console.log("we hit checkRome2Rio");
   return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'Rome2Rio') && (data.context.destination) && (data.context.originLocation));
 
-=======
->>>>>>> cd981363fed410646886dd573e5f18081a470478
+
 }
 // function checkRome2Rio(data) {
 // 	console.log("we hit checkRome2Rio");
@@ -765,6 +782,8 @@ function getLocationURL(lat, long) {
 
 function getRome2Rio(place1, place2) {
   // These code snippets use an open-source library. http://unirest.io/nodejs
+  console.log(place1);
+  console.log(place2);
   if ( place1 && place2 ) {
     unirest.get("https://rome2rio12.p.mashape.com/Search?dName="+ place1 + "&oName=" + place2)
     .header("X-Mashape-Key", "4cDxPeYcsGmsh1D3R4bFk2rKcng7p1y1xMgjsnTMywjbXOvDXC")
