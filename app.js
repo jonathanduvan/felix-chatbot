@@ -162,13 +162,13 @@ app.post( '/api/message', function(req, res) {
     input: {}
   };
 
-  var params = null;
+  var parameters = null;
   if ( req.body ) {
     if ( req.body.input ) {
       payload.input = req.body.input;
 
 
-      params = {text: req.body.input.text,features:features};
+      parameters = {text: req.body.input.text,features:features};
     }
     if ( req.body.context ) {
       // The client must maintain context/state
@@ -179,103 +179,51 @@ app.post( '/api/message', function(req, res) {
     }
   }
 
-  if(params == null) {
-   params = {text: "No request body input",features:features}
+  if(parameters == null) {
+   parameters = {text: "No request body input",features:features}
   }
 
-  console.log(params);
+
   // console.log(payload);
-  nlu.analyze(params, function(error, response) {
-      // var destination;
-     //  if(reponse.destination = undefined){
-     //    destination = response.destination;
-     //  }
-     //  else{
-     //    destination = entities.map(function(entry) {
-     //      if(entry.type == "Location") {
-     //        if(entry.disambiguation && entry.disambiguation.subtype && entry.disambiguation.subtype.indexOf("City") > -1) {
-     //          return(entry.text);
-     //        }
-     //      }
-     //    });
-     //  }
-     //
-     //
-     //
-     //  destination = destination.filter(function(entry) {
-    	// 	if(entry != null) {
-    	// 	 return(entry);
-    	// 	}
-	   //  });
-     //  // console.log("User destination:");
-     //  // console.log(destination[0]);
-     //
-     //  if(destination.length > 0) {
-  	 //   payload.context.destination = destination[0];
-     // } else{
-     //   payload.context.destination = null;
-     // }
-     //
-     //  console.log('\n');
-      console.log(response);
-      if(response !== null){
-
-        let keywords = response.keywords;
-        payload.context.keywords = keywords;
-
-        let categories = response.categories;
-        payload.context.categories = categories;
-
-        let entities = response.entities;
-        payload.context.entities = entities;
-
-        let destination = entities.map(function(entry){
-          if(entry.type == "Location") {
-                 if(entry.disambiguation && entry.disambiguation.subtype && entry.disambiguation.subtype.indexOf("City") > -1) {
-                   return(entry.text);
-                 }
-               }
-        });
+  nlu.analyze(parameters, function(error, response) {
+      if(error){
+        var modText = parameters.text
+        var mod = {text: modText};
+        payload.input = mod;
 
 
-
-        // var destination;
-       //  if(reponse.destination = undefined){
-       //    destination = response.destination;
-       //  }
-       //  else{
-       //    destination = entities.map(function(entry) {
-       //      if(entry.type == "Location") {
-       //        if(entry.disambiguation && entry.disambiguation.subtype && entry.disambiguation.subtype.indexOf("City") > -1) {
-       //          return(entry.text);
-       //        }
-       //      }
-       //    });
-       //  }
-       //
-       //
-       //
-       //  destination = destination.filter(function(entry) {
-      	// 	if(entry != null) {
-      	// 	 return(entry);
-      	// 	}
-  	   //  });
-       //  // console.log("User destination:");
-       //  // console.log(destination[0]);
-       //
-       //  if(destination.length > 0) {
-    	 //   payload.context.destination = destination[0];
-       // } else{
-       //   payload.context.destination = null;
-       // }
-       //
-       //  console.log('\n');
       }
+      else{
+        if(response !== null){
+
+          let keywords = response.keywords;
+          payload.context.keywords = keywords;
+
+          let categories = response.categories;
+          payload.context.categories = categories;
+
+          let entities = response.entities;
+          payload.context.entities = entities;
+
+          // let destination = entities.map(function(entry){
+          //   if(entry.type == "Location") {
+          //          if(entry.disambiguation && entry.disambiguation.subtype && entry.disambiguation.subtype.indexOf("City") > -1) {
+          //            return(entry.text);
+          //          }
+          //        }
+          // });
+
+        }
+      }
+      // console.log("before conversation message", payload);
     // Send the input to the conversation service
     conversation.message( payload, function(err, data) {
       if ( err ) {
+        console.log(err);
         return res.status( err.code || 500 ).json( err );
       }
+      // console.log("right before updateMessage", payload);
+      // console.log(payload);
       updateMessage( res, payload, data );
     });
   });
@@ -292,6 +240,7 @@ app.post( '/api/message', function(req, res) {
  */
 function updateMessage(res, input, response) {
 
+  // console.log("after updateMessage", input);
   if(response.intents[0] != null){
     console.log("Intent: ");
     console.log(response.intents[0].intent);
@@ -339,18 +288,6 @@ function updateMessage(res, input, response) {
   else if( checkWantTo(response)){
 
 
-
-    // if(typeof response.context.entities[0] === 'undefined'){
-    //   response.output.text = "Can you make that more specific?"
-    // }
-    // else{
-    //   response.output.text = "Ok, you want to travel to " + response.context.entities[0].text+". Got it! Where are you traveling from?"
-    //   response.context.destination = response.context.entities[0].text;
-    // }
-    //
-    // speakResponse(response.output.text);
-    // return res.json(response);
-    // console.log(response.context.categories);
     let keywords = response.context.keywords;
     let categories = response.context.categories;
     let entities = response.context.entities;
@@ -376,15 +313,28 @@ function updateMessage(res, input, response) {
 
 
 
-    console.log("Destination:", destination[0]);
-    if (checkYelpOption(response.input.text, response)) {
+
+
+    if(checkRome2RioOption(response.input.text, response)){
+      response.context.travelMethodSelected.push(response.context.travelMethods[response.entities[0].value -1]);
+
+      response.output.text = "Ok, I added "+response.context.travelMethods[response.entities[0].value -1]+ " to your selected method of travel"
+      speakResponse(response.output.text);
+      return res.json(response);
+    }
+    // console.log("Destination:", destination[0]);
+    else if (checkYelpOption(response.input.text, response)) {
       console.log('YOU MENTIONED A YELP PLACE');
         let newResponse = updateYelpPlacesToVisit(response.input.text, response);
-        res.json(response);
+        response.output.text = "Ok, anything else?"
+        speakResponse(response.output.text);
+        return res.json(response);
     }
+
+
     if((typeof(destination[0]) !== 'undefined' && destination[0] !== "Location") ){
       response.output.text = "Ok, I understand you want to travel to " + destination[0] + ". Got it! Where are you traveling from?"
-
+      speakResponse(response.output.text);
       response.context.destination = destination[0];
       return res.json(response);
 
@@ -392,6 +342,7 @@ function updateMessage(res, input, response) {
 
     else if(destination[0] === "Location"){
       response.output.text = "Can you give me a city in "+entities[0].text+"?";
+      speakResponse(response.output.text);
 
       return res.json(response);
 
@@ -412,18 +363,10 @@ function updateMessage(res, input, response) {
       .catch((error) => {
         console.log(error);
         response.output.text = "I'm sorry. We couldn't find your desired entity in " +response.context.destination+" using Yelp.";
+        speakResponse(response.output.text);
         return res.json(response);
       })
-      // response.context.text = [];
-      // for(let i = 0; i < keywords.length; i++){
-      //   // let tempCards = yelpQuery(keywords[i].text, response, responseCards);
-      //   // responseCards.push.apply(responseCards, tempCards);
-      //   // console.log('CURRENT CARDS: ', responseCards);
-      //   yelpQuery(keywords[i].text, response);
-      //   console.log('current response text: ', response.output.text);
-      //
-      // }
-      // console.log('final response cards: ', response.output.text);
+
 
     }
 
@@ -431,13 +374,6 @@ function updateMessage(res, input, response) {
     // speakResponse(response.output.text);
 
   }
-  // else if( checkLocationSpecified(response)){
-  //   if(response.context.destination === null){
-  //     response.output.text = "Ok, I understand you want to travel to " + response.entities[0].value + ". Got it! Where are you traveling from?"
-  //   }
-  //
-  //   return res.json(response);
-  // }
   else if( checkOriginLocation(response)){
 
     if(typeof response.context.entities[0] === 'undefined'){
@@ -452,123 +388,163 @@ function updateMessage(res, input, response) {
     return res.json(response);
   }
 
-  // else if ( checkYelp( response ) ) {
-  //   // res.json(getYelpInfo(response));
-  //
-  //
-  //   let keyTerm = response.context.searchTerm;
-  //   let location = response.context.destination;
-  //   let priceRange = response.context.priceRange;
-  //   let yelpBusinessOptions = response.context.yelpBusinessOptions;
-  //
-  //   client.search({
-  //     term: keyTerm,
-  //     location: location
-  //   }).then(yelpResponse => {
-  //     let responseCards = [];
-  //     for (let key in yelpResponse.jsonBody.businesses) {
-  //       if (yelpResponse.jsonBody.businesses[key]) {
-  //         console.log(yelpResponse.jsonBody.businesses[key]);
-  //         responseCards.push(
-  // `          <div class="card">
-  //             <div class="card-image waves-effect waves-block waves-light">
-  //              <img class="activator" src="${yelpResponse.jsonBody.businesses[key].image_url}">
-  //             </div>
-  //            <div class="card-content">
-  //              <span class="card-title activator grey-text text-darken-4">${yelpResponse.jsonBody.businesses[key].name}<i class="material-icons right">more_vert</i></span>
-  //              <p><a href="${yelpResponse.jsonBody.businesses[key].url}">Link to Page on Yelp</a></p>
-  //            </div>
-  //            <div class="card-reveal">
-  //              <span class="card-title grey-text text-darken-4">${yelpResponse.jsonBody.businesses[key].name}<i class="material-icons right">close</i></span>
-  //             <p><b>Phone: </b>${yelpResponse.jsonBody.businesses[key].phone}</p>
-  //              <p><b>Distance: </b>${yelpResponse.jsonBody.businesses[key].distance}</p>
-  //             <p><b>Rating: </b>${yelpResponse.jsonBody.businesses[key].rating}</p>
-  //              <p><b>Price: </b>${yelpResponse.jsonBody.businesses[key].price}</p>
-  //            </div>
-  //           </div>`
-  //         );
-  //         yelpBusinessOptions[yelpResponse.jsonBody.businesses[key].url] = yelpResponse.jsonBody.businesses[key].name;
-  //       }
-  //     }
-  //     let responseText =("\n" + "Here are some businesses that match your query powered by Yelp. Anything catch your eye??");
-  //     responseCards.push(responseText);
-  //     speakResponse(responseText);
-  //     console.log(response.output);
-  //     response.context.yelpBusinessOptions = yelpBusinessOptions;
-  //     response.output.text = responseCards;
-  //     return res.json(response);
-  //   }).catch(e => {
-  //     console.log('here');
-  //     console.log(e);
-  //     return res.json(response);
-  //   });
-  // }
-
-
-  // else if ( checkRome2Rio( response ) ) {
-  //     var logistics = getRome2Rio( response.context.originLocation, response.context.destination );
-  //     console.log("reaching Rome2Rio");
-  //     console.log(logistics);
-  // }
   else if ( checkRome2Rio( response ) ) {
   	console.log("reaching Rome2Rio");
+
   	getRome2Rio( response.context.originLocation, response.context.destination )
     .then(function(value) {
 
 
 
       console.log(value);
-
+      var methods = [];
       var x = [];
 
       for(let i =0; i< value.length; i++){
         x.push(`<div>
-                  <span>Option ${(i+1)}: ${value[i].name} and Price: ${value[i].indicativePrice.price}</span>
+                  <span>Option ${(response.context.travelMethods.length+1)}: ${value[i].name}</span>
                 </div>
+                <div>
+                  <span>Estimated price: ${value[i].indicativePrice.price}</span>
+                </div>
+
               `);
 
-
+        response.context.travelMethods.push(value[i].name);
       }
-
+      let responseText = "\n" + "Here are some travel options that match your query powered by Rome2Rio. What option would you like?";
+      speakResponse(responseText);
+      x.push(responseText);
 
 
       response.output.text = x;
+
+
       return res.json(response);
+
+
+      // const promises = Array.from(Array(keywords.length).keys()).map((x) => {
+      //  return yelpQuery(keywords[x].text, response); });
+      // Promise.all(promises)
+      // .then((yelpOptions) => {
+      //   let merged = [].concat.apply([], yelpOptions);
+      //   let responseText =("\n" + "Here are some businesses that match your query powered by Yelp. Anything catch your eye??");
+      //   merged.push(responseText);
+      //   response.output.text = merged;
+      //   speakResponse(responseText);
+      //   return res.json(response);
+      // })
+      // .catch((error) => {
+      //   console.log(error);
+      //   response.output.text = "I'm sorry. We couldn't find your desired entity in " +response.context.destination+" using Yelp.";
+      //   return res.json(response);
+      // })
 
     }).catch(e=>{
       console.log(e);
     });
 
-    // unirest.get("https://rome2rio12.p.mashape.com/Search?dName="+ place1 + "&oName=" + place2)
-    // .header("X-Mashape-Key", "4cDxPeYcsGmsh1D3R4bFk2rKcng7p1y1xMgjsnTMywjbXOvDXC")
-    // .header("Accept", "application/json")
-    // .end(function (result) {
-    //
-    //   return res.json(result.body);
-    //
-    // });
-
 
 
 
   }
+  else if(checkSeePlans(response)){
+
+    // itineraryJson["Travel Origin"] = payload.context.originLocation ? payload.context.originLocation : "";
+    //     itineraryJson["Destination"] = payload.context.destination ? payload.context.destination : "";
+    //     itineraryJson["Price Range"] = payload.context.priceRange ? payload.context.priceRange : "";
+    //     itineraryJson["Departure Date"] = payload.context.departureDate ? payload.context.departureDate : "";
+    //     itineraryJson["Return Date"] = payload.context.returnDate ? payload.context.returnDate : "";
+    //     itineraryJson["Preferred Travel Methods"] = payload.context.travelMethods ? payload.context.travelMethods : "";
+    //     itineraryJson["Stuff You Want to Do"] = payload.context.acitivities ? payload.context.acitivites : "";
+    //     itineraryJson["Places You Want to Check Out"] = payload.context.acitivities ? payload.context.yelpSelections : "";
+
+    var itinerary = [];
+    if(response.context.destination !== null){
+      itinerary.push(`<div>
+                      <span>Destination: ${response.context.destination}</span>
+                    </div>`);
+    }else{
+      itinerary.push(`<div>
+                      <span>Destination: Not Specified</span>
+                    </div>`);
+    }
+
+    if(response.context.originLocation !== null){
+      itinerary.push(`<div>
+                      <span>Travel origin: ${response.context.originLocation}</span>
+                    </div>`);
+    }else{
+      itinerary.push(`<div>
+                      <span>Travel origin: Not Specified</span>
+                    </div>`);
+    }
+
+    // if(response.context.priceRange !== null ){
+    //   itinerary.push(`<div>
+    //                   <span>Price Range: ${response.context.priceRange}</span>
+    //                 </div>`);
+    // }else{
+    //   itinerary.push(`<div>
+    //                   <span>Price Range: Not Specified</span>
+    //                 </div>`);
+    // }
+    //
+    // if(response.context.departureDate !== null ){
+    //   itinerary.push(`<div>
+    //                   <span>Departure Date: ${response.context.departureDate}</span>
+    //                 </div>`);
+    // }else{
+    //   itinerary.push(`<div>
+    //                   <span>Departure Date: Not Specified</span>
+    //                 </div>`);
+    // }
+    //
+    // if(response.context.returnDate !== null ){
+    //   itinerary.push(`<div>
+    //                   <span>Return Date: ${response.context.returnDate}</span>
+    //                 </div>`);
+    // }else{
+    //   itinerary.push(`<div>
+    //                   <span>Return Date: Not Specified</span>
+    //                 </div>`);
+    // }
+
+    if(response.context.travelMethodSelected !== null ){
+      itinerary.push(`<div>
+                      <span>Travel Method: ${response.context.travelMethodSelected}</span>
+                    </div>`);
+    }else{
+      itinerary.push(`<div>
+                      <span>Travel Method: Not Specified</span>
+                    </div>`);
+    }
+
+    if(response.context.yelpSelections !== null ){
+      itinerary.push(`<div>
+                      <span>Planned activites: </span>
+                    </div>`);
+      for(let i=0; i< response.context.yelpSelections.length; i++){
+        itinerary.push(`<div>
+                        <span>${i+1}. ${response.context.yelpSelections[i]}</span>
+                      </div>`);
+      }
+    }else{
+      itinerary.push(`<div>
+                      <span>Planned activities: Not Specified</span>
+                    </div>`);
+    }
+
+    speakResponse('Here is your current itinerary for your trip');
+    response.output.text = itinerary;
+    return res.json(response);
+
+  }
 
   else if ( response.output && response.output.text ) {
-    // response.context.yelpTrue = true;
-    // response.context.searchTerm = 'scuba diving';
-    // response.context.destination = 'Los Angeles';
-    // response.context.priceRange = "$$";
-    speakResponse(response.output.text[0]);
-      // response.output.text = (`
-      //   <div class="card small">
-      //     <div class="card-image">
-      //       <img src="https://i.ytimg.com/vi/rX-YiYHahoo/maxresdefault.jpg">
-      //       <span class="card-title">Card Title</span>
-      //     </div>
-      //     <div class="card-content">
-      //       <p>Test information</p>
-      //     </div>
-      //   </div>`);
+
+    // speakResponse(response.output.text[0]);
+
       return res.json( response );
   }
 }
@@ -684,6 +660,7 @@ function checkWantTo(data) {
   return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'WantTo'));
 
 }
+
 function checkLocationSpecified(data){
   return((typeof data.entities  !== 'undefined'  && data.entities != null && data.entities.length != null && data.entities.length > 0));
 }
@@ -694,8 +671,12 @@ function checkOriginLocation(data) {
 }
 
 function checkRome2Rio(data) {
-	console.log("we hit checkRome2Rio");
   return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'Rome2Rio') && (data.context.destination) && (data.context.originLocation));
+
+}
+
+function checkSeePlans(data) {
+  return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'SeePlans'));
 
 }
 
@@ -749,6 +730,47 @@ function checkYelpOption(input, data) {
     }
   }
   return false;
+
+}
+
+function checkRome2RioOption(input, data){
+  console.log('first check: ', data.context.travelMethods.length > 0 );
+  console.log('second check: ', input.toLowerCase().includes('option'));
+
+  if (data.context.travelMethods.length > 0 && (input.toLowerCase().includes('option'))) {
+    for (let key in data.context.travelMethods) {
+      if (data.context.travelMethods[key]) {
+        let travel = data.context.travelMethods[key];
+        console.log(data.entities[0].value);
+        if (input.toLowerCase().includes(travel.toLowerCase())) {
+          return true;
+        }
+        else if (data.context.travelMethods[(data.entities[0].value) - 1]) {
+          return true;
+        }
+          // do stuff
+      }
+    }
+  }
+
+  return false;
+
+
+
+  // for (let i in data.context.travelMethods) {
+  //   if (data.context.yelpBusinessOptions.hasOwnProperty(key)) {
+  //     let business = data.context.yelpBusinessOptions[key];
+  //     console.log(input.toLowerCase());
+  //     console.log(business.toLowerCase());
+  //     if (input.toLowerCase().includes(business.toLowerCase())) {
+  //       return true;
+  //     }
+  //       // do stuff
+  //   }
+  //
+  //
+  // }
+  // return false;
 
 }
 function yelpQuery(keyword, response) {
@@ -887,9 +909,7 @@ function getRome2Rio(place1, place2) {
       .header("X-Mashape-Key", "4cDxPeYcsGmsh1D3R4bFk2rKcng7p1y1xMgjsnTMywjbXOvDXC")
       .header("Accept", "application/json")
       .end(function (result) {
-        // console.log(result.body.routes);
-
-
+        console.log(result.error);
 
         resolve(result.body.routes);
 
