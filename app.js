@@ -185,7 +185,6 @@ app.post( '/api/message', function(req, res) {
   console.log(params);
   // console.log(payload);
   nlu.analyze(params, function(error, response) {
-<<<<<<< HEAD
       // var destination;
      //  if(reponse.destination = undefined){
      //    destination = response.destination;
@@ -217,11 +216,6 @@ app.post( '/api/message', function(req, res) {
      // }
      //
      //  console.log('\n');
-
-=======
-
-
->>>>>>> cd981363fed410646886dd573e5f18081a470478
       console.log(response);
       if(response !== null){
 
@@ -276,10 +270,6 @@ app.post( '/api/message', function(req, res) {
        //
        //  console.log('\n');
       }
-<<<<<<< HEAD
-=======
-
->>>>>>> cd981363fed410646886dd573e5f18081a470478
     // Send the input to the conversation service
     conversation.message( payload, function(err, data) {
       if ( err ) {
@@ -380,6 +370,11 @@ function updateMessage(res, input, response) {
       return res.json(response);
 
     }
+    if (checkYelpOption(response.input.text, response)) {
+      console.log('YOU MENTIONED A YELP PLACE');
+        let newResponse = updateYelpPlacesToVisit(response.input.text, response);
+        res.json(response);
+    }
     else{
 
       const promises = Array.from(Array(keywords.length).keys()).map((x) => {
@@ -477,19 +472,16 @@ function updateMessage(res, input, response) {
     });
   }
 
-<<<<<<< HEAD
   else if ( checkRome2Rio( response ) ) {
       var logistics = getRome2Rio( response.context.originLocation, response.context.destination );
       console.log("reaching Rome2Rio");
       console.log(logistics);
   }
-=======
   //  else if ( checkRome2Rio( response ) ) {
 	// console.log("reaching Rome2Rio");
 	// response.output.text = getRome2Rio( response.context.originLocation, response.context.destination );
   //     return.json(response);
   // }
->>>>>>> cd981363fed410646886dd573e5f18081a470478
 
   else if ( response.output && response.output.text ) {
     // response.context.yelpTrue = true;
@@ -632,6 +624,57 @@ function checkOriginLocation(data) {
 }
 
 
+/*
+Function to update context variable of yelp locations the user wants to visit or make note of.
+Inputs
+------
+input: String of user input to Watson response
+data: Response object to input
+*/
+function updateYelpPlacesToVisit(input, data) {
+  let businesses = data.context.yelpSelections ? data.context.yelpSelections : [];
+  for (let key in data.context.yelpBusinessOptions) {
+    if (data.context.yelpBusinessOptions.hasOwnProperty(key)) {
+      let business = data.context.yelpBusinessOptions[key];
+      if (input.toLowerCase().includes(business.toLowerCase())) {
+        speakResponse(`Ok! We're adding ${business} to your list of places to check out`);
+        businesses.push(business)
+      }
+        // do stuff
+    }
+  }
+
+  if (businesses.length > 0) {
+    let uniqueBusiness = [...new Set(businesses)];
+    data.context.yelpSelections = uniqueBusiness;
+
+  }
+  return data;
+}
+
+/*
+Function to check if string contains any yelp selections that were in queries to yelp made by the user so far
+Inputs
+------
+input: String of user input to Watson response
+data: Response object to input
+*/
+function checkYelpOption(input, data) {
+  console.log(input, data);
+  for (let key in data.context.yelpBusinessOptions) {
+    if (data.context.yelpBusinessOptions.hasOwnProperty(key)) {
+      let business = data.context.yelpBusinessOptions[key];
+      console.log(input.toLowerCase());
+      console.log(business.toLowerCase());
+      if (input.toLowerCase().includes(business.toLowerCase())) {
+        return true;
+      }
+        // do stuff
+    }
+  }
+  return false;
+
+}
 function yelpQuery(keyword, response) {
   console.log('keyword');
   return new Promise((fulfill, reject) => {
@@ -681,7 +724,6 @@ function yelpQuery(keyword, response) {
       reject(e);
     });
   });
-<<<<<<< HEAD
 
 }
 
@@ -689,8 +731,6 @@ function checkRome2Rio(data) {
 	console.log("we hit checkRome2Rio");
   return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'Rome2Rio') && (data.context.destination) && (data.context.originLocation));
 
-=======
->>>>>>> cd981363fed410646886dd573e5f18081a470478
 }
 // function checkRome2Rio(data) {
 // 	console.log("we hit checkRome2Rio");
