@@ -336,6 +336,11 @@ function updateMessage(res, input, response) {
       response.output.text = "Ok, I understand you want to travel to " + destination[0] + ". Got it! Where are you traveling from?"
       speakResponse(response.output.text);
       response.context.destination = destination[0];
+      response.context.originLocation = null;
+      response.context.travelMethods = [];
+      response.context.travelMethodSelected = [];
+      response.context.yelpSelections = null;
+      response.context.yelpBusinessOptions = {};
       return res.json(response);
 
     }
