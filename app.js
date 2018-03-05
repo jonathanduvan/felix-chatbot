@@ -22,6 +22,7 @@ var express = require( 'express' );  // app server
 var fs = require('fs');
 var bodyParser = require( 'body-parser' );  // parser for post requests
 var watson = require( 'watson-developer-cloud' );  // watson sdk
+var unirest = require('unirest');
 // var recognizeMic = require('watson-speech/speech-to-text/recognize-microphone');
 
 //var TextToSpeechV1 = require('watson-developer-cloud/text-to-speech/v1');
@@ -185,7 +186,6 @@ app.post( '/api/message', function(req, res) {
   console.log(params);
   // console.log(payload);
   nlu.analyze(params, function(error, response) {
-
       // var destination;
      //  if(reponse.destination = undefined){
      //    destination = response.destination;
@@ -217,7 +217,6 @@ app.post( '/api/message', function(req, res) {
      // }
      //
      //  console.log('\n');
-
       console.log(response);
       if(response !== null){
 
@@ -272,7 +271,6 @@ app.post( '/api/message', function(req, res) {
        //
        //  console.log('\n');
       }
-
     // Send the input to the conversation service
     conversation.message( payload, function(err, data) {
       if ( err ) {
@@ -379,6 +377,11 @@ function updateMessage(res, input, response) {
 
 
     console.log("Destination:", destination[0]);
+    if (checkYelpOption(response.input.text, response)) {
+      console.log('YOU MENTIONED A YELP PLACE');
+        let newResponse = updateYelpPlacesToVisit(response.input.text, response);
+        res.json(response);
+    }
     if((typeof(destination[0]) !== 'undefined' && destination[0] !== "Location") ){
       response.output.text = "Ok, I understand you want to travel to " + destination[0] + ". Got it! Where are you traveling from?"
 
@@ -386,10 +389,12 @@ function updateMessage(res, input, response) {
       return res.json(response);
 
     }
+
     else if(destination[0] === "Location"){
       response.output.text = "Can you give me a city in "+entities[0].text+"?";
 
       return res.json(response);
+
     }
     else{
 
@@ -500,20 +505,59 @@ function updateMessage(res, input, response) {
   // }
 
 
+  // else if ( checkRome2Rio( response ) ) {
+  //     var logistics = getRome2Rio( response.context.originLocation, response.context.destination );
+  //     console.log("reaching Rome2Rio");
+  //     console.log(logistics);
+  // }
   else if ( checkRome2Rio( response ) ) {
-      var logistics = getRome2Rio( response.context.originLocation, response.context.destination );
-      console.log("reaching Rome2Rio");
-      console.log(logistics);
-  }
+  	console.log("reaching Rome2Rio");
+  	getRome2Rio( response.context.originLocation, response.context.destination )
+    .then(function(value) {
 
+
+
+      console.log(value);
+
+      var x = [];
+
+      for(let i =0; i< value.length; i++){
+        x.push(`<div>
+                  <span>Option ${(i+1)}: ${value[i].name} and Price: ${value[i].indicativePrice.price}</span>
+                </div>
+              `);
+
+
+      }
+
+
+
+      response.output.text = x;
+      return res.json(response);
+
+    }).catch(e=>{
+      console.log(e);
+    });
+
+    // unirest.get("https://rome2rio12.p.mashape.com/Search?dName="+ place1 + "&oName=" + place2)
+    // .header("X-Mashape-Key", "4cDxPeYcsGmsh1D3R4bFk2rKcng7p1y1xMgjsnTMywjbXOvDXC")
+    // .header("Accept", "application/json")
+    // .end(function (result) {
+    //
+    //   return res.json(result.body);
+    //
+    // });
+
+
+
+
+  }
 
   else if ( response.output && response.output.text ) {
     // response.context.yelpTrue = true;
     // response.context.searchTerm = 'scuba diving';
     // response.context.destination = 'Los Angeles';
     // response.context.priceRange = "$$";
-    // response.context.destination = response.context.destination !== null ? response.context.destination : null ;
-    // response.context.originLocation = response.context.originLocation !== null ? response.context.originLocation : null ;
     speakResponse(response.output.text[0]);
       // response.output.text = (`
       //   <div class="card small">
@@ -649,7 +693,64 @@ function checkOriginLocation(data) {
 
 }
 
+function checkRome2Rio(data) {
+	console.log("we hit checkRome2Rio");
+  return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'Rome2Rio') && (data.context.destination) && (data.context.originLocation));
 
+}
+
+
+/*
+Function to update context variable of yelp locations the user wants to visit or make note of.
+Inputs
+------
+input: String of user input to Watson response
+data: Response object to input
+*/
+function updateYelpPlacesToVisit(input, data) {
+  let businesses = data.context.yelpSelections ? data.context.yelpSelections : [];
+  for (let key in data.context.yelpBusinessOptions) {
+    if (data.context.yelpBusinessOptions.hasOwnProperty(key)) {
+      let business = data.context.yelpBusinessOptions[key];
+      if (input.toLowerCase().includes(business.toLowerCase())) {
+        speakResponse(`Ok! We're adding ${business} to your list of places to check out`);
+        businesses.push(business)
+      }
+        // do stuff
+    }
+  }
+
+  if (businesses.length > 0) {
+    let uniqueBusiness = [...new Set(businesses)];
+    data.context.yelpSelections = uniqueBusiness;
+
+  }
+  return data;
+}
+
+/*
+Function to check if string contains any yelp selections that were in queries to yelp made by the user so far
+Inputs
+------
+input: String of user input to Watson response
+data: Response object to input
+*/
+function checkYelpOption(input, data) {
+  console.log(input, data);
+  for (let key in data.context.yelpBusinessOptions) {
+    if (data.context.yelpBusinessOptions.hasOwnProperty(key)) {
+      let business = data.context.yelpBusinessOptions[key];
+      console.log(input.toLowerCase());
+      console.log(business.toLowerCase());
+      if (input.toLowerCase().includes(business.toLowerCase())) {
+        return true;
+      }
+        // do stuff
+    }
+  }
+  return false;
+
+}
 function yelpQuery(keyword, response) {
   console.log('keyword');
   return new Promise((fulfill, reject) => {
@@ -700,15 +801,9 @@ function yelpQuery(keyword, response) {
     });
   });
 
-
 }
 
-function checkRome2Rio(data) {
-	console.log("we hit checkRome2Rio");
-  return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'Rome2Rio') && (data.context.destination) && (data.context.originLocation));
 
-
-}
 // function checkRome2Rio(data) {
 // 	console.log("we hit checkRome2Rio");
 //   return ((data.intents && data.intents.length > 0 && data.intents[0].intent === 'Rome2Rio') && (data.context.destination) && (data.context.originLocation));
@@ -782,17 +877,38 @@ function getLocationURL(lat, long) {
 
 function getRome2Rio(place1, place2) {
   // These code snippets use an open-source library. http://unirest.io/nodejs
-  console.log(place1);
-  console.log(place2);
+
   if ( place1 && place2 ) {
-    unirest.get("https://rome2rio12.p.mashape.com/Search?dName="+ place1 + "&oName=" + place2)
-    .header("X-Mashape-Key", "4cDxPeYcsGmsh1D3R4bFk2rKcng7p1y1xMgjsnTMywjbXOvDXC")
-    .header("Accept", "application/json")
-    .end(function (result) {
-     console.log(result.status, result.headers, result.body);
-	    return result.status + result.headers + result.body;
+    return new Promise((resolve, reject) => {
+      console.log(place1);
+      console.log(place2);
+
+      return unirest.get("https://rome2rio12.p.mashape.com/Search?dName="+ place2 + "&oName=" + place1)
+      .header("X-Mashape-Key", "4cDxPeYcsGmsh1D3R4bFk2rKcng7p1y1xMgjsnTMywjbXOvDXC")
+      .header("Accept", "application/json")
+      .end(function (result) {
+        // console.log(result.body.routes);
+
+
+
+        resolve(result.body.routes);
+
+      });
+
     });
+
+    // return unirest.get("https://rome2rio12.p.mashape.com/Search?dName="+ place1 + "&oName=" + place2)
+    //  .header("X-Mashape-Key", "4cDxPeYcsGmsh1D3R4bFk2rKcng7p1y1xMgjsnTMywjbXOvDXC")
+    //  .header("Accept", "application/json")
+    //  .end();
+
   }
+  // else{
+  //   return new Promise((fulfill, reject) =>{
+  //     console.log('nothing retrieved');
+  //   });
+  // }
+
 }
 
 module.exports = app;
