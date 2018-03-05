@@ -488,9 +488,6 @@ function updateMessage(res, input, response) {
     // response.context.searchTerm = 'scuba diving';
     // response.context.destination = 'Los Angeles';
     // response.context.priceRange = "$$";
-    response.context.yelpBusinessOptions = {};
-    response.context.destination = response.context.destination !== null ? response.context.destination : null ;
-    response.context.originLocation = response.context.originLocation !== null ? response.context.originLocation : null ;
     speakResponse(response.output.text[0]);
       // response.output.text = (`
       //   <div class="card small">
